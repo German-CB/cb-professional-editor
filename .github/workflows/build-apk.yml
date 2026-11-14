@@ -1,3 +1,41 @@
+
+name: Build CB Professional Editor APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android tools
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Install Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Extract Android project
+        run: unzip -q CB-Professional-Editor-Android-Package.zip -d source
+
       - name: Build APK
         run: |
           SETTINGS=$(find source \( -name settings.gradle -o -name settings.gradle.kts \) | head -n 1)
@@ -19,7 +57,12 @@
             exit 1
           fi
 
-          APK_PATH="$PWD/${APK#./}"
+          APK_PATH=$(realpath "$APK")
           echo "APK_PATH=$APK_PATH" >> "$GITHUB_ENV"
-          echo "APK encontrado: $APK_PATH"
-          
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CB-Professional-Editor-APK
+          path: ${{ env.APK_PATH }}
+          if-no-files-found: error
